@@ -1,0 +1,76 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}
+    <title>{{ town.name }}</title>
+{% endblock %}
+{% block head %}
+    <script src="{% static 'js/custom.js' %}"></script>
+{% endblock head %}
+{% block content %}
+    <div class="container p-2">
+        <div class="row">
+            <div class="col-xl-6 col-lg-6 mt-2">
+                <h4>Produktionsgebäude</h4>
+                <div class="list-group">
+                    <form method="post">
+                        {% csrf_token %}
+                        {% for building in town.get_production_buildings %}
+                            {% include "building/snippets/item_building.html" with building=building %}
+                        {% endfor %}
+                    </form>
+                </div>
+            </div>
+            <div class="col-xl-6 col-lg-6 mt-2">
+                <h4>Weitere Gebäude</h4>
+                <div class="list-group">
+                    <form method="post">
+                        {% csrf_token %}
+                        {% for building in town.get_buildings %}
+                            {% include "building/snippets/item_building.html" with building=building %}
+                        {% endfor %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% include 'building/snippets/info_modal.html' %}
+
+    <script>
+        const infoModal = document.getElementById('infoModal')
+        infoModal.addEventListener('show.bs.modal', function (event) {
+            // Button that triggered the modal
+            var button = event.relatedTarget;
+
+            const name = button.getAttribute('data-bs-name');
+            const description = button.getAttribute('data-bs-description');
+            const stats = button.getAttribute('data-bs-stats');
+            // If necessary, you could initiate an AJAX request here
+            // and then do the updating in a callback.
+            //
+            // Update the modal's content.
+            const modalTitle = infoModal.querySelector('.infoModal-title')
+            const modalDescription = infoModal.querySelector('.infoModal-description');
+            const modelStat = infoModal.querySelector('.infoModal-stats');
+
+            modalTitle.textContent = 'Information zu ' + name;
+            modalDescription.textContent = description;
+            modelStat.innerHTML = stats;
+        })
+
+        document.addEventListener("DOMContentLoaded", function (event) {
+            var constructions = document.querySelectorAll(".progress-bar");
+            constructions.forEach(e => {
+                countdown(e, e.getAttribute("started_at"), e.getAttribute('finished_at'));
+            });
+
+            // Call the updateResources function once immediately
+            const town_pk = "{{ town.pk }}";
+            updateResources(town_pk);
+
+            // Call the updateResources function every 1 minute
+            setInterval(updateResources, 60 * 1000);
+
+        });
+
+    </script>
+{% endblock %}
