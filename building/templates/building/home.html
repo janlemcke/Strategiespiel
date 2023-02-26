@@ -68,7 +68,9 @@
             updateResources(town_pk);
 
             // Call the updateResources function every 1 minute
-            setInterval(updateResources, 60 * 1000);
+            setInterval(() => {
+                updateResources(town_pk);
+            }, 4 * 1000);
 
         });
 
