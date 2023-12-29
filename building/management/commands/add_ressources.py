@@ -9,5 +9,7 @@ class Command(BaseCommand):
     help = 'Adds ressources'
 
     def handle(self, *args, **kwargs):
-        Town.objects.first().add_ressources(100, 100, 100, 100)
+        town = Town.objects.first()
+        capacity = town.get_capacity()
+        Town.objects.first().add_ressources(capacity,capacity,capacity,capacity)
         self.stdout.write(self.style.SUCCESS(f'Ressources added.'))

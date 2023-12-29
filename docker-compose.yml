@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+
+  redis:
+    container_name: redis
+    image: redis:7.2.1-alpine
+
+  django:
+    container_name: django
+    build:
+      context: ./
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./:/usr/src/app/
+    ports:
+      - 8001:8000
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=daowdjeaidjaedea
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+    depends_on:
+      - redis
+
+  celery:
+    container_name: celery
+    build:
+      context: ./
+    command: celery -A core worker -l info
+    volumes:
+      - ./:/usr/src/app/
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=daowdjeaidjaedea
+      - ALLOWED_HOSTS=localhost,
+    depends_on:
+      - redis
+      - django
+
+  celery-beat:
+    container_name: celery_beat
+    build:
+      context: ./
+    command: celery -A core beat -l info
+    volumes:
+      - ./:/usr/src/app/
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=daowdjeaidjaedea
+      - ALLOWED_HOSTS=localhost,
+    depends_on:
+      - redis
+      - django

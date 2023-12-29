@@ -2,16 +2,29 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-    <div class="row">
-        <div class="col-md-6 offset-md-3">
-            <h2>Login</h2>
+    <div class="min-h-screen flex items-center justify-center">
+        <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 flex flex-col w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-6">Login</h2>
+
             <form method="post">
                 {% csrf_token %}
                 {{ form|crispy }}
 
-                <button type="submit" class="btn btn-primary">Login</button>
+                {% if form.errors %}
+                    <p class="text-red-500 text-xs italic mt-4">
+                        Please enter a correct username and password. Note that both fields may be case-sensitive.
+                    </p>
+                {% endif %}
+
+                <button type="submit" class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded">
+                    Login
+                </button>
             </form>
-            <p><a href="{% url 'password_reset' %}">Lost password?</a></p>
+
+            <p class="mt-4">
+                <a href="{% url 'signup' %}" class="btn">Registrieren</a>
+                <a href="{% url 'password_reset' %}" class="btn">Passwort vergessen?</a>
+            </p>
         </div>
     </div>
 {% endblock %}

@@ -20,15 +20,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-6!y5h$67u9di3t-=9m(*g(1zr75a_n^s1hm)hx0t7gwz_r!)fl'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+SECRET_KEY = os.environ.get("SECRET_KEY")
+DEBUG = os.environ.get("DEBUG")
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS").split(",")
 
-ALLOWED_HOSTS = []
 
-# Application definition
+LOGIN_URL = "account/login"
+LOGIN_REDIRECT_URL = '/'
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -44,11 +44,11 @@ INSTALLED_APPS = [
     "django_celery_results",
 
     'crispy_forms',
-    "crispy_bootstrap5",
+    "crispy_daisyui",
 ]
 
-CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
-CRISPY_TEMPLATE_PACK = "bootstrap5"
+CRISPY_ALLOWED_TEMPLATE_PACKS = "daisyui"
+CRISPY_TEMPLATE_PACK = "daisyui"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -61,9 +61,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'core.urls'
-
-LOGIN_URL = "account/login"
-LOGIN_REDIRECT_URL = '/'
 
 TEMPLATES = [
     {
@@ -127,26 +124,19 @@ USE_I18N = True
 
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.1/howto/static-files/
-
-STATIC_URL = 'static/'
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 STATICFILES_FINDERS = [
-    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",  # finds files stored in the 'static' subdirectory of each app.
 ]
 
+STATIC_URL = "static/"
 STATIC_ROOT = os.getenv("STATIC_ROOT", os.path.join(BASE_DIR, "static", ""))
 
-# Celery settings
-CELERY_BROKER_URL = "redis://localhost:6379"
-CELERY_RESULT_BACKEND = "django-db"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.getenv("MEDIA_ROOT", os.path.join(BASE_DIR, "media", ""))
 
-# for production:
-# CELERY_BROKER_URL = "amqp://myuser:mypassword@localhost:5672/myvhost"
-# CELERY_RESULT_BACKEND = "redis://localhost:6379"
+
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER", "redis://redis:6379/0")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_BACKEND", "redis://redis:6379/0")

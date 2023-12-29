@@ -19,4 +19,4 @@ def index(request):
     if request.POST:
         if "action" in request.POST and "upgrade" in request.POST["action"]:
             upgrade_building(request.POST["action"].split("_")[1], context["town"])
-    return render(request, "building/home.html", context)
+    return render(request, "building/town.html", context)

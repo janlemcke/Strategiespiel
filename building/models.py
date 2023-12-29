@@ -8,8 +8,10 @@ from building.tasks import set_construction_timer
 
 
 class Building(models.Model):
+    is_production_building = False
     level = models.PositiveIntegerField(default=0)
     under_construction = models.BooleanField(default=False)
+    construction_started_at = models.DateTimeField(null=True)
     construction_finished_at = models.DateTimeField(null=True)
 
     name = ""
@@ -23,16 +25,19 @@ class Building(models.Model):
     def get_icon(self):
         pass
 
-    def get_name(self):
+    def get_name(self) -> str:
         return self.name
 
-    def get_level(self):
+    def get_level(self) -> int:
         return self.level
 
-    def get_description(self):
+    def get_max_level(self) -> int:
+        return len(self.lvl_costs) - 1
+
+    def get_description(self) -> str:
         return self.description
 
-    def can_upgrade(self):
+    def can_upgrade(self) -> bool:
         if (self.level + 1 not in self.lvl_costs) or self.under_construction:
             return False
 
@@ -46,12 +51,13 @@ class Building(models.Model):
         else:
             return False
 
-    def upgrade(self):
+    def upgrade(self) -> None:
         if self.can_upgrade():
             # Set construction
             self.under_construction = True
-            self.construction_finished_at = datetime.now() + timedelta(seconds=self.lvl_time[self.level])
-            set_construction_timer.apply_async(args=[self.town.pk], countdown=self.lvl_time[self.level])
+            self.construction_started_at = datetime.utcnow()
+            self.construction_finished_at = datetime.utcnow() + timedelta(seconds=self.lvl_time[self.level])
+            set_construction_timer.apply_async(args=[self.town.pk], eta=self.construction_finished_at)
 
             # Add costs to town resources
             costs = self.lvl_costs[self.level]
@@ -62,30 +68,58 @@ class Building(models.Model):
     def get_stats(self):
         pass
 
-    def is_under_construction(self):
+    def is_under_construction(self) -> bool:
         return self.under_construction
 
-    def check_construction_status(self):
+    def check_construction_status(self) -> None:
         if self.is_under_construction():
+            self.construction_started_at = None
             self.construction_finished_at = None
             self.under_construction = False
             self.level += 1
             self.save()
 
+    def get_needed_resources(self) -> dict:
+        if self.level + 1 not in self.lvl_costs:
+            return {}
+
+        costs = self.lvl_costs[self.level].copy()
+        wood, stone, gold, tools = self.town.get_ressources()
+
+        costs["wood"] = max(0, costs["wood"] - wood)
+        costs["stone"] = max(0, costs["stone"] - stone)
+        costs["gold"] = max(0, costs["gold"] - gold)
+        costs["tools"] = max(0, costs["tools"] - tools)
+
+        if costs["wood"] == 0:
+            del costs["wood"]
+        if costs["stone"] == 0:
+            del costs["stone"]
+        if costs["gold"] == 0:
+            del costs["gold"]
+        if costs["tools"] == 0:
+            del costs["tools"]
+
+        return costs
+
 
 class Storage(Building):
     name = "Lager"
     description = "Im Lager deiner Stadt werden die Resourcen aufbewahrt. Je höher die Stufe dieses gebäudes, desto mehr Resouren kann deine Stadt maximal lagern."
-    lvl_capacity = {0: 325, 1: 350, 2: 400}
+    lvl_capacity = {0: 325, 1: 350, 2: 400, 3: 450, 4: 500}
     lvl_costs = {
-        0: {"wood": 10, "stone": 15, "gold": 5, "tools": 2},
-        1: {"wood": 15, "stone": 20, "gold": 10, "tools": 4},
-        2: {"wood": 150, "stone": 200, "gold": 50, "tools": 47},
+        0: {"wood": 10, "stone": 10, "gold": 10, "tools": 10},
+        1: {"wood": 20, "stone": 20, "gold": 20, "tools": 20},
+        2: {"wood": 40, "stone": 40, "gold": 40, "tools": 40},
+        3: {"wood": 80, "stone": 80, "gold": 80, "tools": 80},
+        4: {"wood": 160, "stone": 160, "gold": 160, "tools": 160},
     }
     lvl_time = {
-        0: 20,
-        1: 40,
-        2: 1800,
+        0: 100,
+        1: 200,
+        2: 300,
+        3: 400,
+        4: 500,
     }
 
     def upgrade(self):
@@ -93,35 +127,132 @@ class Storage(Building):
         super().upgrade()
 
 
+class Barracks(Building):
+    name = "Kaserne"
+    description = "In der Kaserne werden deine Soldaten ausgebildet. Je höher die Stufe dieses Gebäudes, desto schneller werden deine Soldaten ausgebildet."
+
+    lvl_costs = {
+        0: {"wood": 10, "stone": 10, "gold": 10, "tools": 10},
+        1: {"wood": 20, "stone": 20, "gold": 20, "tools": 20},
+        2: {"wood": 40, "stone": 40, "gold": 40, "tools": 40},
+        3: {"wood": 80, "stone": 80, "gold": 80, "tools": 80},
+        4: {"wood": 160, "stone": 160, "gold": 160, "tools": 160},
+    }
+    lvl_time = {
+        0: 100,
+        1: 200,
+        2: 300,
+        3: 400,
+        4: 500,
+    }
+
+
+class Church(Building):
+    name = "Kapelle"
+    description = "In der Kapelle können deine Bürger beten und sich erholen. Je höher die Stufe dieses Gebäudes, desto schneller regenerieren sich deine Bürger."
+
+    lvl_costs = {
+        0: {"wood": 10, "stone": 10, "gold": 10, "tools": 10},
+        1: {"wood": 20, "stone": 20, "gold": 20, "tools": 20},
+        2: {"wood": 40, "stone": 40, "gold": 40, "tools": 40},
+        3: {"wood": 80, "stone": 80, "gold": 80, "tools": 80},
+        4: {"wood": 160, "stone": 160, "gold": 160, "tools": 160},
+    }
+    lvl_time = {
+        0: 100,
+        1: 200,
+        2: 300,
+        3: 400,
+        4: 500,
+    }
+
+
+class Farm(Building):
+    name = "Felder"
+    description = "Auf den Feldern werden die Nahrungsmittel für deine Bürger angebaut. Je höher die Stufe dieses Gebäudes, desto mehr Bürger können ernährt werden."
+
+    lvl_costs = {
+        0: {"wood": 10, "stone": 10, "gold": 10, "tools": 10},
+        1: {"wood": 20, "stone": 20, "gold": 20, "tools": 20},
+        2: {"wood": 40, "stone": 40, "gold": 40, "tools": 40},
+        3: {"wood": 80, "stone": 80, "gold": 80, "tools": 80},
+        4: {"wood": 160, "stone": 160, "gold": 160, "tools": 160},
+    }
+    lvl_time = {
+        0: 100,
+        1: 200,
+        2: 300,
+        3: 400,
+        4: 500,
+    }
+
+
+class CityWall(Building):
+    name = "Stadtmauer"
+    description = "Die Stadtmauer schützt deine Stadt vor Angriffen. Je höher die Stufe dieses Gebäudes, desto mehr Schaden können die Mauern aushalten."
+    lvl_costs = {
+        0: {"wood": 10, "stone": 10, "gold": 10, "tools": 10},
+        1: {"wood": 20, "stone": 20, "gold": 20, "tools": 20},
+        2: {"wood": 40, "stone": 40, "gold": 40, "tools": 40},
+        3: {"wood": 80, "stone": 80, "gold": 80, "tools": 80},
+        4: {"wood": 160, "stone": 160, "gold": 160, "tools": 160},
+    }
+    lvl_time = {
+        0: 100,
+        1: 200,
+        2: 300,
+        3: 400,
+        4: 500,
+    }
+
+
 class ProductionBuilding(Building):
-    lvl_ressource = {
+    is_production_building = True
+    lvl_costs = {
+        0: {"wood": 10, "stone": 10, "gold": 10, "tools": 10},
+        1: {"wood": 20, "stone": 20, "gold": 20, "tools": 20},
+        2: {"wood": 40, "stone": 40, "gold": 40, "tools": 40},
+        3: {"wood": 80, "stone": 80, "gold": 80, "tools": 80},
+        4: {"wood": 160, "stone": 160, "gold": 160, "tools": 160},
+    }
+    lvl_time = {
+        0: 100,
+        1: 200,
+        2: 300,
+        3: 400,
+        4: 500,
+    }
+
+    lvl_resources = {
         0: 0,
         1: 10,
         2: 20,
         3: 30,
-    }
-
-    lvl_costs = {
-        0: {"wood": 10, "stone": 15, "gold": 5, "tools": 2},
-        1: {"wood": 15, "stone": 20, "gold": 10, "tools": 4},
-        2: {"wood": 20, "stone": 25, "gold": 15, "tools": 8},
-    }
-
-    lvl_time = {
-        0: 20,
-        1: 40,
-        2: 1200,
+        4: 40,
     }
 
     class Meta:
         abstract = True
 
-    def get_ressource(self):
-        return self.lvl_ressource[self.level]
+    def get_resource(self):
+        return self.lvl_resources[self.level]
+
+    def get_info_table(self):
+        rows = ""
+        for level in range(self.level + 1):
+            costs = self.lvl_costs[level]
+            text = str(self.lvl_resources[level])
+
+            table_row = f"<tr><td>{level}</td><td>{text}</td><td>{costs['wood']}</td><td>{costs['stone']}</td><td>{costs['gold']}</td><td>{costs['tools']}</td></tr>"
+            rows += table_row
+
+        return rows
 
     def get_stats(self):
         costs = self.lvl_costs[self.level]
-        stats = [("Produktion pro Stunde", f"{self.get_ressource()} -> {self.lvl_ressource[self.level + 1]}"),
+        has_next_level = self.level + 1 in self.lvl_costs
+        text = f"{self.get_resource()} -> {self.lvl_resources[self.level + 1]}" if has_next_level else f"{self.get_resource()}"
+        stats = [("Produktion pro Stunde", text),
                  ("Holz", costs["wood"]),
                  ("Stein", costs["stone"]),
                  ("Gold", costs["gold"]),
@@ -162,6 +293,10 @@ class Town(models.Model):
 
     # Buildings
     storage = models.OneToOneField(Storage, on_delete=models.CASCADE, default=0)
+    church = models.OneToOneField(Church, on_delete=models.CASCADE, default=0)
+    barracks = models.OneToOneField(Barracks, on_delete=models.CASCADE, default=0)
+    cityWall = models.OneToOneField(CityWall, on_delete=models.CASCADE, default=0)
+    farm = models.OneToOneField(Farm, on_delete=models.CASCADE, default=0)
 
     # Ressourcen
     wood = models.FloatField(default=0)
@@ -172,17 +307,20 @@ class Town(models.Model):
 
     @classmethod
     def create(cls, user):
-        lumberjack = Lumberjack.objects.create()
-        stoneMine = StoneMine.objects.create()
-        goldMine = GoldMine.objects.create()
-        forge = Forge.objects.create()
-        storage = Storage.objects.create()
         town = cls(user=user)
-        town.lumberjack = lumberjack
-        town.stoneMine = stoneMine
-        town.goldMine = goldMine
-        town.forge = forge
-        town.storage = storage
+
+        # Production Buildings
+        town.lumberjack = Lumberjack.objects.create()
+        town.stoneMine = StoneMine.objects.create()
+        town.goldMine = GoldMine.objects.create()
+        town.forge = Forge.objects.create()
+
+        # Buildings
+        town.storage = Storage.objects.create()
+        town.church = Church.objects.create()
+        town.barracks = Barracks.objects.create()
+        town.cityWall = CityWall.objects.create()
+        town.farm = Farm.objects.create()
 
         town.name = user.username + "s Stadt"
 
@@ -203,10 +341,10 @@ class Town(models.Model):
         self.tools = min(self.tools, self.capacity)
 
     def update_ressources(self) -> None:
-        self.wood += self.lumberjack.get_ressource() / 60
-        self.stone += self.stoneMine.get_ressource() / 60
-        self.gold += self.goldMine.get_ressource() / 60
-        self.tools += self.forge.get_ressource() / 60
+        self.wood += round(self.lumberjack.get_resource() / 60, 2)
+        self.stone += round(self.stoneMine.get_resource() / 60, 2)
+        self.gold += round(self.goldMine.get_resource() / 60, 2)
+        self.tools += round(self.forge.get_resource() / 60, 2)
         self.check_capacity()
         self.save()
 
@@ -226,7 +364,7 @@ class Town(models.Model):
         return [self.lumberjack, self.stoneMine, self.goldMine, self.forge]
 
     def get_buildings(self) -> [Building]:
-        return [self.storage]
+        return [self.storage, self.barracks, self.cityWall, self.church, self.farm]
 
     def get_ressources(self) -> [float]:
         return [self.wood, self.stone, self.gold, self.tools]
