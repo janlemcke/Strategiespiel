@@ -5,6 +5,7 @@ from ninja import Router, Schema
 from ninja.responses import Response
 
 from building.models import Town
+from core import settings
 
 router = Router()
 
@@ -30,6 +31,13 @@ class BuildingUpgradabilityOut(Schema):
     needed_resources: dict[str, int]
 
 
+class UnitCostsOut(Schema):
+    costs: List[List[int]]
+
+class TrainUnits(Schema):
+    unit_amounts: List[int]
+
+
 @router.get("/{pk}/resources", response=ResourceOut, description="Get all current resources of a town")
 def get_resources(request, pk: int):
     try:
@@ -42,7 +50,7 @@ def get_resources(request, pk: int):
     capacity = town.get_capacity()
     dates = []
     for i, prod in enumerate(town.get_production_buildings()):
-        production_rate_per_hour = prod.get_resource()
+        production_rate_per_hour = prod.get_resource(prod.level)
         resource = resource_list[i]
         time_left = (capacity - resource) / production_rate_per_hour
         time_left_hours = math.floor(time_left)
@@ -123,6 +131,16 @@ def get_building(request, pk: int, building_name: str):
     return Response({'error': 'Building does not exist'}, status=404)
 
 
+@router.get("/unit/costs", response=UnitCostsOut,
+            description="Get unit costs of a town")
+def get_unit_cost(request):
+    stats = settings.GAME_STATS
+    response_list = []
+    for unit in stats["units"]:
+        response_list.append([unit["wood"], unit["stone"], unit["gold"], unit["tools"]])
+
+    return Response(UnitCostsOut(costs=response_list), status=200)
+
 @router.post("/{pk}/buildings/{building_name}/upgrade", description="Upgrade a building")
 def upgrade_building(request, pk: int, building_name: str):
     try:
@@ -136,3 +154,15 @@ def upgrade_building(request, pk: int, building_name: str):
             return Response({'success': 'Building upgrade started'}, status=200)
 
     return Response({'error': 'Building does not exist'}, status=404)
+
+
+@router.post("/{pk}/barracks/train", description="Train units")
+def upgrade_building(request, pk: int, trainUnits: TrainUnits):
+    try:
+        town = Town.objects.get(pk=pk)
+    except Town.DoesNotExist:
+        return Response({'error': 'Town does not exist'}, status=404)
+
+    town.barracks.train_units(trainUnits.unit_amounts)
+
+    return Response({'success': 'Units training started'}, status=200)

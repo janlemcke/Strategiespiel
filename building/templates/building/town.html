@@ -4,7 +4,8 @@
     <title>Strategiespiel: {{ town.name }}</title>
 {% endblock %}
 {% block head %}
-    <script src="{% static '/js/custom.js' %}"></script>
+    <script src="{% static '/js/town_api.js' %}"></script>
+    <script src="{% static '/js/town_ui.js' %}"></script>
 {% endblock head %}
 {% block content %}
     <div class="container mx-auto p-2">
@@ -27,20 +28,16 @@
             </div>
         </div>
     </div>
-    {% include 'building/snippets/production_building_dialog.html' %}
 
     <script>
         FETCH_RESOURCES_INTERVAL = 60 * 1000; // 60 seconds
 
         document.addEventListener("DOMContentLoaded", function (event) {
-            // Call the updateResources function once immediately
-            const town_pk = "{{ town.pk }}";
-            updateResources(town_pk);
-            updateBuildings(town_pk);
+            const town_api = new TownAPI("{{ town.pk }}");
 
             // Call the updateResources function every 1 minute
             setInterval(() => {
-                updateResources(town_pk);
+                town_api.updateResources();
             }, FETCH_RESOURCES_INTERVAL);
 
         });

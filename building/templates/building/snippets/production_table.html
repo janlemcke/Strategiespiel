@@ -1,0 +1,16 @@
+<table class="table table-zebra">
+    <thead>
+    <tr>
+        <th>Stufe</th>
+        <th>Produktion / h</th>
+        <th>Ausbauzeit</th>
+        <th>Kosten<br>Holz</th>
+        <th>Kosten<br>Stein</th>
+        <th>Kosten<br>Gold</th>
+        <th>Kosten<br>Werkzeug</th>
+    </tr>
+    </thead>
+    <tbody>
+    {{ building.get_info_table|safe }}
+    </tbody>
+</table>

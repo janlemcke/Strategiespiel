@@ -3,7 +3,24 @@
 <div id="{{ building.name }}" class="card bg-base-100 shadow">
     <div class="card-body">
         <div class="card-title justify-between">
-            <h5>{{ building.get_name }}</h5>
+            <div class="flex space-x-0.5"><h5>{{ building.get_name }} </h5>
+                {% if building.multiplier > 1 %}
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                         viewBox="0 0 24 24" stroke-width="1.5"
+                         stroke="currentColor" class="w-3 h-3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 18.75 7.5-7.5 7.5 7.5"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 7.5-7.5 7.5 7.5"></path>
+                    </svg>
+                {% elif building.multiplier < 1 %}
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                         stroke="currentColor" class="w-3 h-3">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="m4.5 5.25 7.5 7.5 7.5-7.5m-15 6 7.5 7.5 7.5-7.5"></path>
+                    </svg>
+                {% else %}
+                {% endif %}
+
+            </div>
             <small id="building-lvl">Stufe 1</small>
         </div>
         <p class="mb-2 opacity-75 description">{{ building.get_description }}</p>
@@ -17,30 +34,18 @@
             </div>
             <button class="btn" onclick="modal_{{ building.name }}.showModal()">Information</button>
             <dialog id="modal_{{ building.name }}" class="modal">
-                <div class="modal-box">
+                <div class="modal-box max-w-2xl">
                     <form method="dialog">
                         <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                     </form>
                     <h3 class="font-bold text-lg">{{ building.name }}</h3>
                     <p class="py-3 opacity-75 description">{{ building.get_description }}</p>
                     {% if building.is_production_building %}
-                    <div class="overflow-auto">
-                        <table class="table table-zebra">
-                            <thead>
-                            <tr>
-                                <th>Stufe</th>
-                                <th>Produktion / Stunde</th>
-                                <th>Kosten<br>Holz</th>
-                                <th>Kosten<br>Stein</th>
-                                <th>Kosten<br>Gold</th>
-                                <th>Kosten<br>Werkzeug</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {{ building.get_info_table|safe }}
-                            </tbody>
-                        </table>
-                    </div>
+                        {% include 'building/snippets/production_table.html' %}
+                    {% elif building.name == "Lager" %}
+                        {% include 'building/snippets/storage_table.html' %}
+                    {% elif building.name == "Kaserne" %}
+                        {% include 'building/snippets/barrack_modal_content.html' %}
                     {% endif %}
             </dialog>
         </div>

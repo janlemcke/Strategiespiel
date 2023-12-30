@@ -1,0 +1,43 @@
+{
+    "units": [
+        {
+            "name": "javelin_thrower",
+            "attack_meele": 1,
+            "attack_ranged": 2,
+            "defense_meele": 1,
+            "defense_ranged": 1,
+            "train_time": 15,
+            "movement_speed": 2,
+            "wood": 8,
+            "stone": 10,
+            "gold": 5,
+            "tools": 1
+        },
+        {
+            "name": "swordsman",
+            "attack_meele": 2,
+            "attack_ranged": 1,
+            "defense_meele": 2,
+            "defense_ranged": 2,
+            "train_time": 10,
+            "movement_speed": 2,
+            "wood": 7,
+            "stone": 7,
+            "gold": 8,
+            "tools": 5
+        },
+        {
+            "name": "archer",
+            "attack_meele": 0,
+            "attack_ranged": 3,
+            "defense_meele": 1,
+            "defense_ranged": 3,
+            "train_time": 30,
+            "movement_speed": 3,
+            "wood": 15,
+            "stone": 0,
+            "gold": 10,
+            "tools": 5
+        }
+    ]
+}
