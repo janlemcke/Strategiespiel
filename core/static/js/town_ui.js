@@ -240,8 +240,15 @@ class TownUI {
             const unit_amounts = [];
             for (let i = 0; i < data["costs"].length; i++) {
                 const amount = parseInt(unit_inputs[i].value);
+                unit_inputs[i].value = 0;
                 unit_amounts.push(amount);
+
             }
+            wood_cost = 0;
+            stone_cost = 0;
+            gold_cost = 0;
+            tools_cost = 0;
+            total_costs_element.innerHTML = "Gesamtkosten: " + wood_cost + " Holz, " + stone_cost + " Stein, " + gold_cost + " Gold, " + tools_cost + " Werkzeuge";
 
             fetch('/api/town/' + this.pk + '/barracks/train', {
                 method: 'POST',
