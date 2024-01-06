@@ -1,0 +1,45 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}
+    <title>Strategiespiel: {{ town.name }}</title>
+{% endblock %}
+{% block head %}
+    <script src="{% static 'js/town_api.js' %}"></script>
+    <script src="{% static 'js/town_ui.js' %}"></script>
+{% endblock head %}
+{% block content %}
+    <div class="container mx-auto p-2">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="lg:mt-2">
+                <h4 class="text-2xl font-bold mb-2">Produktionsgebäude</h4>
+                <div class="space-y-2">
+                    {% for building in town.get_production_buildings %}
+                        {% include "building/snippets/item_building.html" with building=building %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="lg:mt-2">
+                <h4 class="text-2xl font-bold mb-2">Weitere Gebäude</h4>
+                <div class="space-y-2">
+                    {% for building in town.get_buildings %}
+                        {% include "building/snippets/item_building.html" with building=building %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        FETCH_RESOURCES_INTERVAL = 60 * 1000; // 60 seconds
+
+        document.addEventListener("DOMContentLoaded", function (event) {
+            const town_api = new TownAPI("{{ town.pk }}");
+
+            // Call the updateResources function every 1 minute
+            setInterval(() => {
+                town_api.updateResources();
+            }, FETCH_RESOURCES_INTERVAL);
+
+        });
+    </script>
+{% endblock %}

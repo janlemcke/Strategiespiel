@@ -1,19 +1,31 @@
 FROM python:3.11.4-alpine
 
-
-WORKDIR /usr/src/app
-
-# prevent python from writing pyc files to disc
-ENV PYTHONDONTWRITEBYTECODE 1
-# prevent python from buffering stdout and stderr -> write directly to terminal
 ENV PYTHONUNBUFFERED 1
 
-RUN pip install --upgrade pip
-COPY requirements.txt /usr/src/app/requirements.txt
-RUN pip install -r requirements.txt
+COPY ./requirements.txt /requirements.txt
+COPY ./app /app
+COPY ./scripts /scripts
 
-COPY entrypoint.sh /usr/src/app/entrypoint.sh
+WORKDIR /app
+EXPOSE 8000
 
-COPY . /usr/src/app/
+RUN python -m venv /py && \
+    /py/bin/pip install --upgrade pip && \
+    apk add --update --no-cache postgresql-client && \
+    apk add --update --no-cache --virtual .tmp-deps \
+        build-base postgresql-dev musl-dev linux-headers && \
+    /py/bin/pip install -r /requirements.txt && \
+    apk del .tmp-deps && \
+    adduser --disabled-password --no-create-home app && \
+    mkdir -p /vol/web/static && \
+    mkdir -p /vol/web/media && \
+    chown -R app:app /vol && \
+    chmod -R 755 /vol && \
+    chmod -R +x /scripts && \
+    chown -R app:app . && \
+    chmod -R 755 .
 
-ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
+ENV PATH="/scripts:/py/bin:$PATH"
+
+USER app
+CMD ["run.sh"]

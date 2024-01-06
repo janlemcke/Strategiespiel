@@ -5,34 +5,31 @@ services:
   redis:
     container_name: redis
     image: redis:7.2.1-alpine
+    restart: always
 
   app:
     container_name: django
     build:
       context: .
-    command: >
-      sh -c "python manage.py wait_for_db &&
-             python manage.py migrate &&
-             python manage.py collectstatic --no-input &&
-             python manage.py runserver 0.0.0.0:8000"
-    ports:
-      - 8000:8000
+    restart: always
     volumes:
-        - ./app:/app
+      - static-data:/vol/web
     environment:
-      - DEBUG=1
-      - SECRET_KEY=daowdjeaidjaedea
-      - ALLOWED_HOSTS=localhost,127.0.0.1
       - POSTGRES_HOST=db
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
     depends_on:
-      - redis
+      - db
 
   db:
     container_name: db
     image: postgres:13.4-alpine
+    restart: always
+    volumes:
+      - postgres-data:/var/lib/postgresql/data/
     environment:
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USER}
@@ -42,15 +39,13 @@ services:
     container_name: celery
     build:
       context: .
-    command:
-      sh -c "python manage.py wait_for_db &&
-      celery -A core worker -l info"
+    command: celery -A core worker -l info
+    restart: always
     volumes:
-      - ./app:/app
+      - static-data:/vol/web
     environment:
-      - DEBUG=1
-      - SECRET_KEY=daowdjeaidjaedea
-      - ALLOWED_HOSTS=localhost,
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - POSTGRES_HOST=db
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USER}
@@ -61,18 +56,16 @@ services:
 
   celery-beat:
     container_name: celery_beat
+    user: root
     build:
       context: .
-    user: root
+    command: celery -A core beat -l info
+    restart: always
     volumes:
-      - ./app:/app
-    command:
-      sh -c "python manage.py wait_for_db &&
-      celery -A core beat -l info"
+      - static-data:/vol/web
     environment:
-      - DEBUG=1
-      - SECRET_KEY=daowdjeaidjaedea
-      - ALLOWED_HOSTS=localhost,
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - POSTGRES_HOST=db
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USER}
@@ -80,3 +73,19 @@ services:
     depends_on:
       - redis
       - app
+
+  proxy:
+    container_name: proxy
+    build:
+      context: ./proxy
+    restart: always
+    depends_on:
+      - app
+    ports:
+      - "80:8000"
+    volumes:
+      - static-data:/vol/static
+
+volumes:
+    postgres-data:
+    static-data:

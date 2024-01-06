@@ -1,0 +1,23 @@
+{% load static %}
+<!doctype html>
+<html lang="en" data-theme="cupcake">
+<head>
+    <title>{% block title %}{% endblock %}</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="{% static 'css/output.css' %} " rel="stylesheet">
+    {% block head %}{% endblock %}
+</head>
+<header>
+    {% if user.is_authenticated %}
+        {% include 'core/nav.html' %}
+    {% endif %}
+</header>
+<body>
+{% block content %}
+
+{% endblock %}
+</body>
+</html>
